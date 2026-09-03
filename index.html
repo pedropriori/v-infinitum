@@ -54,6 +54,28 @@
   .field label { display: block; font-size: 12px; color: var(--silver); margin-bottom: 4px; }
   .field input { width: 100%; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .editor-layout { display: flex; gap: 20px; }
+  .editor-panel { width: 340px; flex-shrink: 0; max-height: calc(100vh - 160px); overflow-y: auto; padding-right: 4px; }
+  .editor-preview { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .preview-frame-wrap { width: 100%; max-width: 640px; aspect-ratio: 16/9; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .preview-frame-wrap.mobile { max-width: 300px; aspect-ratio: 9/16; }
+  .preview-frame-wrap iframe { width: 100%; height: 100%; border: 0; }
+  .device-toggle { display: flex; gap: 6px; }
+  .device-toggle button { background: transparent; border: 1px solid var(--border); color: var(--silver); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-family: var(--font); }
+  .device-toggle button.active { background: var(--gold); color: #1a1400; border-color: var(--gold); }
+  .editor-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .section { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .section h4 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gold); }
+  .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; }
+  .row label { font-size: 13px; color: var(--silver); flex: 1; }
+  .row input[type="text"], .row input[type="number"], .row input[type="url"], .row select { flex: 1; }
+  .row input[type="color"] { width: 36px; height: 28px; padding: 2px; background: none; }
+  .switch { position: relative; width: 38px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--surface-2); border-radius: 999px; cursor: pointer; border: 1px solid var(--border); transition: .2s; }
+  .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: var(--silver); border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--gold); }
+  .switch input:checked + .slider::before { transform: translateX(16px); background: #1a1400; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -147,7 +169,7 @@
         if (action === 'trash') { trashVideo(id); renderVideoList(); }
         else if (action === 'restore') { restoreVideo(id); renderVideoList(); }
         else if (action === 'delete') { deleteVideoPermanently(id); renderVideoList(); }
-        else if (action === 'edit') { console.log('editor opens in Task 8', id); }
+        else if (action === 'edit') { renderEditor(id); }
         else if (action === 'embed') { console.log('embed modal opens in Task 11', id); }
       });
     });
@@ -211,6 +233,75 @@
       document.body.removeChild(backdrop);
       renderVideoList();
     });
+  }
+
+  var currentDevice = 'desktop';
+
+  function buildPlayerUrl(video) {
+    var c = video.config;
+    var params = new URLSearchParams();
+    params.set('v', video.sourceUrl);
+    if (video.thumbnail) params.set('poster', video.thumbnail);
+    params.set('autoplay', c.smartAutoplay.enabled ? '1' : '0');
+    params.set('mute_text', c.smartAutoplay.overlayText);
+    params.set('bar_color', c.smartProgress.color);
+    params.set('bar_height', String(c.smartProgress.height));
+    params.set('cta', c.cta.enabled ? '1' : '0');
+    params.set('cta_text', c.cta.text);
+    params.set('cta_url', c.cta.checkoutUrl);
+    params.set('cta_time', String(c.cta.timeSeconds));
+    params.set('cta_color', c.cta.color);
+    params.set('cta_sub', c.cta.subtext);
+    params.set('cw', c.continueWatching.enabled ? '1' : '0');
+    params.set('cw_msg', c.continueWatching.message);
+    params.set('pixel', c.pixels.enabled ? c.pixels.pixelId : '');
+    params.set('pixel_pcts', c.pixels.percentages.join(','));
+    params.set('speed', c.playback.speed);
+    return 'player.html?' + params.toString();
+  }
+
+  function refreshPreview(video) {
+    var frame = document.getElementById('previewFrame');
+    if (frame) frame.src = buildPlayerUrl(video);
+  }
+
+  function renderEditor(id) {
+    var video = getVideo(id);
+    if (!video) { renderVideoList(); return; }
+
+    mainView.innerHTML =
+      '<div class="editor-toolbar">' +
+        '<button class="btn" id="backToList">← Voltar</button>' +
+        '<button class="btn btn-primary" id="embedTopBtn">Embed</button>' +
+      '</div>' +
+      '<div class="editor-layout">' +
+        '<div class="editor-panel card" id="editorPanel" style="padding:16px;"></div>' +
+        '<div class="editor-preview">' +
+          '<div class="device-toggle">' +
+            '<button data-device="desktop" class="active">Desktop</button>' +
+            '<button data-device="mobile">Mobile</button>' +
+          '</div>' +
+          '<div class="preview-frame-wrap" id="previewWrap"><iframe id="previewFrame"></iframe></div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('backToList').addEventListener('click', renderVideoList);
+    document.getElementById('embedTopBtn').addEventListener('click', function () { console.log('embed modal opens in Task 11', id); });
+
+    mainView.querySelectorAll('.device-toggle button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        currentDevice = btn.dataset.device;
+        mainView.querySelectorAll('.device-toggle button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        document.getElementById('previewWrap').classList.toggle('mobile', currentDevice === 'mobile');
+      });
+    });
+
+    renderConfigPanel(video);
+    refreshPreview(video);
+  }
+
+  function renderConfigPanel(video) {
+    document.getElementById('editorPanel').innerHTML = '<p style="color:var(--silver)">Config panel — Task 9/10.</p>';
   }
 
   renderVideoList();
