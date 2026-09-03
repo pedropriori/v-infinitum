@@ -39,6 +39,20 @@
   .progress-fill {
     height: 100%; width: 0%; border-radius: 999px; background: #D4AF37;
   }
+  .cta-btn {
+    position: absolute; left: 50%; bottom: 56px; transform: translateX(-50%) translateY(12px);
+    background: #D4AF37; color: #1a1400; text-decoration: none;
+    padding: 12px 22px; border-radius: 999px; font-weight: 700; text-align: center;
+    opacity: 0; transition: opacity .3s ease, transform .3s ease; pointer-events: none;
+  }
+  .cta-btn.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .cta-btn small { display: block; font-weight: 500; font-size: 11px; opacity: 0.8; }
+  .resume-prompt {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    color: var(--cream, #F8F6F0); text-align: center; padding: 20px;
+  }
+  .resume-actions { display: flex; gap: 10px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -53,6 +67,17 @@
       <span class="time" id="timeLabel">0:00 / 0:00</span>
       <div class="progress-track" id="progressTrack">
         <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+    <a class="cta-btn" id="ctaBtn" href="#" target="_blank" rel="noopener" hidden>
+      <span id="ctaText"></span>
+      <small id="ctaSub"></small>
+    </a>
+    <div class="resume-prompt" id="resumePrompt" hidden>
+      <p id="resumeMsg"></p>
+      <div class="resume-actions">
+        <button class="btn btn-primary" id="resumeContinue">Continuar</button>
+        <button class="btn" id="resumeRestart">Recomeçar</button>
       </div>
     </div>
   </div>
@@ -164,6 +189,70 @@
     var rect = progressTrack.getBoundingClientRect();
     var ratio = (e.clientX - rect.left) / rect.width;
     video.currentTime = Math.max(0, Math.min(1, ratio)) * video.duration / SMART_FACTOR;
+  });
+
+  // CTA
+  var ctaBtn = document.getElementById('ctaBtn');
+  if (cfg.ctaEnabled && cfg.ctaText) {
+    document.getElementById('ctaText').textContent = cfg.ctaText;
+    document.getElementById('ctaSub').textContent = cfg.ctaSub;
+    ctaBtn.href = cfg.ctaUrl || '#';
+    ctaBtn.style.background = cfg.ctaColor;
+    ctaBtn.hidden = false;
+    video.addEventListener('timeupdate', function onCtaTick() {
+      if (video.currentTime >= cfg.ctaTime) {
+        ctaBtn.classList.add('visible');
+        video.removeEventListener('timeupdate', onCtaTick);
+      }
+    });
+  }
+
+  // Continue watching
+  var progressKey = encodeURIComponent(cfg.src);
+  var resumePrompt = document.getElementById('resumePrompt');
+  if (cfg.cwEnabled && cfg.src) {
+    var saved = getProgress(progressKey);
+    if (saved > 5) {
+      resumePrompt.hidden = false;
+      document.getElementById('resumeMsg').textContent = cfg.cwMsg;
+      video.pause();
+      document.getElementById('resumeContinue').addEventListener('click', function () {
+        video.currentTime = saved;
+        resumePrompt.hidden = true;
+        video.muted = false;
+        play();
+      });
+      document.getElementById('resumeRestart').addEventListener('click', function () {
+        video.currentTime = 0;
+        resumePrompt.hidden = true;
+        video.muted = false;
+        play();
+      });
+    }
+    video.addEventListener('timeupdate', function () {
+      if (video.currentTime > 3) setProgress(progressKey, video.currentTime);
+    });
+  }
+
+  // Pixels
+  var pixelPcts = cfg.pixelPcts;
+  var pixelFired = {};
+  function firePixel(pct) {
+    if (!cfg.pixelId) return;
+    var detail = { pixelId: cfg.pixelId, percent: pct, video: cfg.src };
+    window.dispatchEvent(new CustomEvent('vinfinitum:pixel', { detail: detail }));
+    console.log('[VInfinitum Pixel]', detail);
+  }
+  video.addEventListener('timeupdate', function () {
+    if (!video.duration) return;
+    var watchedPct = (video.currentTime / video.duration) * 100;
+    for (var i = 0; i < pixelPcts.length; i++) {
+      var p = pixelPcts[i];
+      if (watchedPct >= p && !pixelFired[p]) {
+        pixelFired[p] = true;
+        firePixel(p);
+      }
+    }
   });
 
   window.__player = { video: video, cfg: cfg };
