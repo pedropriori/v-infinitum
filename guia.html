@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V Infinitum — Construa seu próprio player de VSL</title>
+<meta name="description" content="Um player de VSL completo — dashboard, autoplay inteligente, progresso que parece mais curto, CTA cronometrado — construído uma vez com Claude Code e seu para sempre. Sem mensalidade.">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { line-height: 1.6; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0; border-bottom: 1px solid var(--border);
+  }
+  header.top .brand { display: flex; align-items: center; gap: 10px; }
+  header.top .brand img { width: 26px; height: 26px; }
+  .eyebrow-tag {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--silver); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 12px;
+  }
+
+  .hero { padding: 72px 0 56px; text-align: center; }
+  .hero .kicker {
+    color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: 0.2em;
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  .hero h1 {
+    font-size: clamp(30px, 5vw, 46px); line-height: 1.15; margin: 0 0 20px;
+    font-weight: 700; letter-spacing: -0.01em;
+  }
+  .hero h1 em { color: var(--gold); font-style: normal; }
+  .hero p.sub { color: var(--silver); font-size: 17px; max-width: 580px; margin: 0 auto 32px; }
+  .hero-stats { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 34px; }
+  .stat-pill {
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px;
+    font-size: 13px; color: var(--silver); background: var(--surface);
+  }
+  .stat-pill strong { color: var(--gold); }
+  .hero-cta { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .hero-cta a.btn { text-decoration: none; display: inline-block; }
+
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  .section-label {
+    display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px;
+  }
+  .section-label .num { color: var(--gold); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; }
+  .section-label .name { color: var(--silver); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; }
+  h2 { font-size: 28px; margin: 4px 0 12px; }
+  section > p.lead { color: var(--silver); font-size: 16px; margin-bottom: 28px; max-width: 620px; }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
+  .feature-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; background: var(--surface);
+  }
+  .feature-card strong { display: block; color: var(--cream); margin-bottom: 4px; font-size: 14.5px; }
+  .feature-card span { color: var(--silver); font-size: 13.5px; }
+
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step; position: relative; padding: 0 0 28px 46px; border-left: 1px solid var(--border);
+    margin-left: 15px;
+  }
+  ol.steps li:last-child { border-color: transparent; padding-bottom: 0; }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: -15px; top: 0;
+    width: 30px; height: 30px; border-radius: 50%; background: var(--gold); color: #1a1400;
+    font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps li h3 { margin: 2px 0 6px; font-size: 16px; }
+  ol.steps li p { margin: 0 0 8px; color: var(--silver); font-size: 14.5px; }
+  code.inline { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; font-size: 13px; }
+  pre.term {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; overflow-x: auto; color: var(--gold-aged);
+  }
+
+  .prompt-box {
+    position: relative; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px; margin-top: 8px;
+  }
+  .prompt-box pre {
+    margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px;
+    color: var(--cream); max-height: 480px; overflow-y: auto; line-height: 1.55;
+  }
+  .prompt-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+  .usage-block { margin-bottom: 26px; }
+  .usage-block h3 { font-size: 16px; margin: 0 0 8px; color: var(--gold-aged); }
+  .usage-block ol, .usage-block ul { margin: 0; padding-left: 20px; color: var(--silver); font-size: 14.5px; }
+  .usage-block li { margin-bottom: 6px; }
+  .host-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .host-pill { border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; font-size: 13px; color: var(--silver); }
+  .host-pill strong { color: var(--gold); }
+
+  .cost-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .cost-compare { grid-template-columns: 1fr; } }
+  .cost-card { border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; }
+  .cost-card.old { opacity: 0.7; }
+  .cost-card.new { border-color: var(--gold); background: linear-gradient(180deg, rgba(212,175,55,0.08), transparent); }
+  .cost-card .label { font-size: 13px; color: var(--silver); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .cost-card .price { font-size: 34px; font-weight: 700; }
+  .cost-card .price small { font-size: 14px; color: var(--silver); font-weight: 500; }
+  .cost-card.new .price { color: var(--gold); }
+  .savings-note {
+    margin-top: 20px; text-align: center; color: var(--silver); font-size: 14.5px;
+    border-top: 1px dashed var(--border); padding-top: 18px;
+  }
+  .savings-note strong { color: var(--gold); }
+
+  footer.bottom { padding: 48px 0 64px; text-align: center; border-top: 1px solid var(--border); }
+  footer.bottom .wordmark { display: block; margin-bottom: 8px; font-size: 15px; }
+  footer.bottom p { color: var(--silver); font-size: 13.5px; margin: 4px 0; }
+  footer.bottom a { color: var(--gold-aged); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <img src="assets/logo.svg" alt="">
+        <span class="wordmark" style="font-size:14px;">Infinitum</span>
+      </div>
+      <span class="eyebrow-tag">Guia completo</span>
+    </header>
+
+    <section class="hero" style="border-top:none;">
+      <div class="kicker">V Infinitum · Feito com Claude Code</div>
+      <h1>Seu player de VSL. Construído uma vez.<br><em>Seu para sempre.</em></h1>
+      <p class="sub">
+        Dashboard completo, autoplay inteligente, barra de progresso que parece mais curta,
+        botão de ação cronometrado, continuar assistindo, pixels — tudo que uma ferramenta de
+        R$97–297/mês entrega, construído com Claude Code em cerca de 15 minutos e hospedado de graça.
+        Sem assinatura. Sem dependência de plataforma. Seu.
+      </p>
+      <div class="hero-stats">
+        <span class="stat-pill"><strong>R$0</strong>/mês de licença</span>
+        <span class="stat-pill"><strong>~15 min</strong> pra construir</span>
+        <span class="stat-pill"><strong>100%</strong> seu código</span>
+      </div>
+      <div class="hero-cta">
+        <a href="#prompt" class="btn btn-primary">Ver o prompt ↓</a>
+        <a href="#passo-a-passo" class="btn">Como funciona</a>
+      </div>
+    </section>
+
+    <section id="visao-geral">
+      <div class="section-label"><span class="num">01</span><span class="name">Visão Geral</span></div>
+      <h2>O que você constrói</h2>
+      <p class="lead">
+        Não é um clone genérico — é um player completo com a mesma engenharia persuasiva das
+        ferramentas pagas, só que com o código na sua mão.
+      </p>
+      <div class="feature-grid">
+        <div class="feature-card"><strong>Dashboard completo</strong><span>Upload, biblioteca, configurações e embed — tudo numa interface só sua.</span></div>
+        <div class="feature-card"><strong>Smart Autoplay</strong><span>O vídeo começa sozinho, mudo — um toque ativa o som. Zero fricção pro espectador.</span></div>
+        <div class="feature-card"><strong>Progresso Inteligente</strong><span>A barra é calibrada pra parecer mais curta do que o vídeo realmente é.</span></div>
+        <div class="feature-card"><strong>Botão de Ação (CTA)</strong><span>Aparece exatamente no segundo que você definir, com o link do seu checkout.</span></div>
+        <div class="feature-card"><strong>Continuar Assistindo</strong><span>Quem saiu no meio volta de onde parou — não do zero.</span></div>
+        <div class="feature-card"><strong>Pixels</strong><span>Disparo de eventos por percentual assistido, sem depender de terceiros.</span></div>
+        <div class="feature-card"><strong>Embed responsivo</strong><span>Um código, cole em qualquer página — funciona em qualquer tamanho de tela.</span></div>
+        <div class="feature-card"><strong>Sem controles nativos</strong><span>Barra própria, sem botão de download, sem velocidade exposta. Você controla a experiência.</span></div>
+      </div>
+    </section>
+
+    <section id="passo-a-passo">
+      <div class="section-label"><span class="num">02</span><span class="name">Passo a Passo</span></div>
+      <h2>Cinco passos até o ar</h2>
+      <p class="lead">Você precisa do Claude Code instalado — baixe em claude.ai/download. Funciona em Windows, Mac e Linux.</p>
+      <ol class="steps">
+        <li>
+          <h3>Crie a pasta do projeto</h3>
+          <p>Um nome qualquer serve. É onde o seu player vai viver.</p>
+          <pre class="term">mkdir meu-player
+cd meu-player</pre>
+        </li>
+        <li>
+          <h3>Abra o Claude Code</h3>
+          <p>No terminal, dentro da pasta:</p>
+          <pre class="term">claude</pre>
+        </li>
+        <li>
+          <h3>Cole o prompt</h3>
+          <p>O prompt completo está na seção <a href="#prompt" style="color:var(--gold-aged);">03 — O Prompt</a>, logo abaixo. Cole e aperte Enter — se o Claude perguntar algo, confirme; se pedir pra instalar algo, aceite.</p>
+        </li>
+        <li>
+          <h3>Teste localmente</h3>
+          <p>Depois que o Claude terminar:</p>
+          <pre class="term">npx http-server -p 3000</pre>
+          <p>Abra <code class="inline">localhost:3000</code> — seu player já está rodando.</p>
+        </li>
+        <li>
+          <h3>Publique de graça</h3>
+          <p>Pra gerar links de embed reais:</p>
+          <pre class="term">npx vercel --prod</pre>
+          <p>Login com GitHub ou e-mail, siga as instruções. No ar em menos de um minuto.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section id="prompt">
+      <div class="section-label"><span class="num">03</span><span class="name">O Prompt</span></div>
+      <h2>Cole isso no Claude Code</h2>
+      <p class="lead">
+        Este prompt já nasceu de uma implementação real — inclui as decisões de arquitetura que
+        evitam retrabalho (arquivos compartilhados, contrato de parâmetros, o truque do progresso
+        inteligente). Troque os tokens de cor pela identidade da sua marca, ou use os valores
+        padrão da Infinitum.
+      </p>
+      <div class="prompt-box">
+        <pre id="promptText">Crie um player de VSL (Video Sales Letter) completo com identidade visual própria, em HTML + CSS + JS puro — sem framework, sem build step. Estrutura de arquivos:
+
+1. theme.css — tokens de marca compartilhados (cor de fundo, cor de destaque, tipografia) usados pelas duas páginas abaixo. Evita duplicar a paleta em dois lugares.
+
+2. storage.js — schema e funções de CRUD sobre localStorage para os vídeos (create/get/update/trash/restore/delete) e para salvar a posição de "continuar assistindo". Compartilhado pelas duas páginas — evita duplicar a lógica de dados e o risco de um typo de chave corromper o progresso salvo.
+
+3. index.html — Dashboard de gerenciamento:
+   - Header com logo + wordmark da marca, avatar
+   - Sidebar: Meus Vídeos, Segurança, Configurações
+   - Lista de vídeos: tabela com thumbnail, nome, data, plays, ações (editar, embed, excluir) — com abas Biblioteca / Top vídeos / Lixeira
+   - Upload: modal com drag & drop de arquivo + campo de URL (aceita blob URL e URL direta)
+   - Editor do vídeo: painel de configuração à esquerda + preview ao vivo em iframe à direita (toggle Desktop/Mobile)
+     * Estilo: cor principal, background, cantos arredondados, toggles de controles (play grande/pequeno, desativar pause, barra de progresso, tempo, voltar/avançar 10s, volume, fullscreen, velocidade)
+     * Progresso Inteligente: toggle, cor da barra, altura — a barra deve visualmente completar um pouco antes do vídeo realmente terminar, criando a sensação de que falta pouco
+     * Smart Autoplay: toggle, texto do overlay, trecho inicial
+     * Botões de Ação (CTA): toggle, texto, link de checkout, tempo pra aparecer, cor, subtexto
+     * Continuar Assistindo: toggle, mensagem, botões continuar/reiniciar — só deve aparecer se o espectador já assistiu mais que alguns segundos, não a cada recarregamento trivial
+     * Pixels: toggle, ID, percentuais de disparo (dispara um evento customizado a cada percentual, sem dependência externa)
+     * Opções de Reprodução: smart pause, recomeçar, velocidade, fullscreen (desktop/mobile)
+   - Modal de Embed: toggle Vídeo Responsivo, abas Recomendado / JavaScript / iFrame, código gerado, link direto, preview ao vivo, botão copiar
+
+4. player.html — Player embedável:
+   - Autoplay mutado (clique desmuta), sem controles nativos do navegador
+   - Barra de progresso custom, seekable, com o efeito de "progresso inteligente" acima
+   - Botão de CTA que aparece no tempo configurado
+   - Texto "toque pra ativar o som" que some sozinho depois de alguns segundos
+   - Continuar assistindo via localStorage
+   - Disparo de pixels por percentual assistido
+   - Recebe TUDO via query params na URL (vídeo, poster, cores, textos, tempos) — assim o dashboard só monta uma URL, sem gerar HTML dinâmico
+   - Atalhos de teclado: espaço (play/pause), setas (± 10s)
+
+Identidade visual (troque pelos tokens da sua marca, ou use estes padrões da Infinitum):
+- Fundo #0A0A0A · Destaque/ação #D4AF37 · Acentos #5C2A7E e #9B1C2C · Texto #F8F6F0
+- Tipografia Inter, com tracking largo no wordmark em caixa alta
+
+Sem controle nativo de download nem velocidade exposta ao espectador. O dashboard gera o embed apontando pro player.html com os parâmetros da configuração salva daquele vídeo. Tudo funcionando junto, tudo em localStorage, zero backend.</pre>
+        <div class="prompt-actions">
+          <button class="btn btn-primary" id="copyPromptBtn">Copiar prompt</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="como-usar">
+      <div class="section-label"><span class="num">04</span><span class="name">Como Usar</span></div>
+      <h2>Do upload ao embed</h2>
+
+      <div class="usage-block">
+        <h3>Subir um vídeo</h3>
+        <ol>
+          <li>Abra o dashboard (<code class="inline">localhost:3000</code> ou seu link Vercel)</li>
+          <li>Clique em <strong>Upload</strong></li>
+          <li>Arraste o MP4 ou cole a URL de um CDN</li>
+          <li>Dê um nome e clique <strong>Salvar</strong></li>
+        </ol>
+      </div>
+
+      <div class="usage-block">
+        <h3>Configurar o player</h3>
+        <ol>
+          <li>Clique no vídeo na lista pra abrir o editor</li>
+          <li>Ajuste cada seção na sidebar esquerda</li>
+          <li>Ative o <strong>Botão de Ação</strong>, cole o link do seu checkout, defina em quantos segundos ele aparece</li>
+          <li>Mude a cor da <strong>Progresso Inteligente</strong> pra combinar com sua página</li>
+          <li>O preview ao lado mostra o resultado em tempo real</li>
+        </ol>
+      </div>
+
+      <div class="usage-block">
+        <h3>Embed na sua página</h3>
+        <ol>
+          <li>Clique no ícone de <strong>Embed</strong></li>
+          <li>Copie o código</li>
+          <li>Cole na sua página de vendas — HTML, WordPress, qualquer lugar</li>
+          <li>Pronto. Seu vídeo rodando com player premium, seu.</li>
+        </ol>
+      </div>
+
+      <div class="usage-block">
+        <h3>Onde hospedar os vídeos</h3>
+        <p style="margin-bottom:10px;">O player aceita qualquer URL de vídeo MP4. Opções mais econômicas:</p>
+        <div class="host-list">
+          <span class="host-pill"><strong>Bunny CDN</strong> — ~R$0,05/GB</span>
+          <span class="host-pill"><strong>Cloudflare R2</strong> — 10GB grátis, egress zero</span>
+          <span class="host-pill"><strong>Google Drive</strong> — bom pra testes</span>
+          <span class="host-pill"><strong>Dropbox</strong> — troque <code class="inline">dl=0</code> por <code class="inline">dl=1</code></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="custo">
+      <div class="section-label"><span class="num">05</span><span class="name">Custo Final</span></div>
+      <h2>O que você deixa de pagar</h2>
+      <div class="cost-compare">
+        <div class="cost-card old">
+          <div class="label">Ferramenta paga</div>
+          <div class="price">R$97<small>–297/mês</small></div>
+        </div>
+        <div class="cost-card new">
+          <div class="label">V Infinitum</div>
+          <div class="price">R$0<small>/mês</small></div>
+        </div>
+      </div>
+      <p class="savings-note">
+        Hospedagem do dashboard e do player: <strong>grátis</strong> na Vercel.
+        Hospedagem dos vídeos: <strong>~R$5–10/mês</strong> num CDN como o Bunny, dependendo do volume.
+        No fim do ano, isso é <strong>de R$1.100 a mais de R$3.500</strong> de volta pro seu bolso —
+        por uma ferramenta que continua sua mesmo se o provedor original subir o preço, mudar os termos, ou sair do ar.
+      </p>
+    </section>
+
+    <footer class="bottom">
+      <span class="wordmark">Infinitum</span>
+      <p>Do Nigredo ao Rubedo — transformação infinita.</p>
+      <p>V Infinitum foi construído com Claude Code. <a href="https://github.com/" target="_blank" rel="noopener">Veja o código-fonte</a>.</p>
+    </footer>
+  </div>
+
+<script>
+  document.getElementById('copyPromptBtn').addEventListener('click', function () {
+    var text = document.getElementById('promptText').textContent;
+    navigator.clipboard.writeText(text).then(function () {
+      var btn = document.getElementById('copyPromptBtn');
+      var original = btn.textContent;
+      btn.textContent = 'Copiado!';
+      setTimeout(function () { btn.textContent = original; }, 1500);
+    });
+  });
+</script>
+</body>
+</html>
