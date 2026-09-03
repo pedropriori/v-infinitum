@@ -386,10 +386,43 @@
   }
 
   function renderConfigPanelPart2(panel, video) {
-    var note = document.createElement('p');
-    note.style.color = 'var(--silver)';
-    note.textContent = 'CTA / Continuar / Pixels / Reprodução — Task 10.';
-    panel.appendChild(note);
+    var c = video.config;
+
+    panel.appendChild(section('Botões de Ação', [
+      toggleRow('Ativado', c.cta.enabled, function (v) { c.cta.enabled = v; saveAndRefresh(video); }),
+      textRow('Texto', c.cta.text, function (v) { c.cta.text = v; saveAndRefresh(video); }),
+      textRow('Link de checkout', c.cta.checkoutUrl, function (v) { c.cta.checkoutUrl = v; saveAndRefresh(video); }, 'url'),
+      textRow('Tempo pra aparecer (s)', c.cta.timeSeconds, function (v) { c.cta.timeSeconds = v; saveAndRefresh(video); }, 'number'),
+      textRow('Cor', c.cta.color, function (v) { c.cta.color = v; saveAndRefresh(video); }, 'color'),
+      textRow('Subtexto', c.cta.subtext, function (v) { c.cta.subtext = v; saveAndRefresh(video); })
+    ]));
+
+    panel.appendChild(section('Continuar Assistindo', [
+      toggleRow('Ativado', c.continueWatching.enabled, function (v) { c.continueWatching.enabled = v; saveAndRefresh(video); }),
+      textRow('Mensagem', c.continueWatching.message, function (v) { c.continueWatching.message = v; saveAndRefresh(video); }),
+      textRow('Botão continuar', c.continueWatching.continueLabel, function (v) { c.continueWatching.continueLabel = v; saveAndRefresh(video); }),
+      textRow('Botão reiniciar', c.continueWatching.restartLabel, function (v) { c.continueWatching.restartLabel = v; saveAndRefresh(video); })
+    ]));
+
+    panel.appendChild(section('Pixels', [
+      toggleRow('Ativado', c.pixels.enabled, function (v) { c.pixels.enabled = v; saveAndRefresh(video); }),
+      textRow('Pixel ID', c.pixels.pixelId, function (v) { c.pixels.pixelId = v; saveAndRefresh(video); }),
+      textRow('Percentuais (separados por vírgula)', c.pixels.percentages.join(','), function (v) {
+        c.pixels.percentages = v.split(',').map(function (n) { return parseInt(n, 10); }).filter(function (n) { return !isNaN(n); });
+        saveAndRefresh(video);
+      })
+    ]));
+
+    panel.appendChild(section('Opções de Reprodução', [
+      toggleRow('Smart pause', c.playback.smartPause, function (v) { c.playback.smartPause = v; saveAndRefresh(video); }),
+      toggleRow('Recomeçar', c.playback.restart, function (v) { c.playback.restart = v; saveAndRefresh(video); }),
+      selectRow('Velocidade', c.playback.speed, [
+        { value: 'auto', label: 'Automática' }, { value: 'low', label: 'Baixa' },
+        { value: 'medium', label: 'Média' }, { value: 'high', label: 'Alta' }
+      ], function (v) { c.playback.speed = v; saveAndRefresh(video); }),
+      toggleRow('Fullscreen desktop', c.playback.fullscreen.desktop, function (v) { c.playback.fullscreen.desktop = v; saveAndRefresh(video); }),
+      toggleRow('Fullscreen mobile', c.playback.fullscreen.mobile, function (v) { c.playback.fullscreen.mobile = v; saveAndRefresh(video); })
+    ]));
   }
 
   renderVideoList();
