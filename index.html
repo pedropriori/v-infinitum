@@ -42,6 +42,18 @@
   .row-actions button { background: transparent; border: none; color: var(--silver); cursor: pointer; font-size: 16px; margin-right: 8px; }
   .row-actions button:hover { color: var(--gold); }
   .empty-state { color: var(--silver); text-align: center; padding: 60px 0; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal { width: 480px; max-width: 90vw; padding: 24px; }
+  .modal h3 { margin-top: 0; }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 30px;
+    text-align: center; color: var(--silver); margin-bottom: 14px; cursor: pointer;
+  }
+  .dropzone.dragover { border-color: var(--gold); color: var(--gold); }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--silver); margin-bottom: 4px; }
+  .field input { width: 100%; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -126,9 +138,7 @@
       renderVideoList();
     });
 
-    document.getElementById('uploadBtn').addEventListener('click', function () {
-      console.log('upload modal opens in Task 7');
-    });
+    document.getElementById('uploadBtn').addEventListener('click', openUploadModal);
 
     mainView.querySelectorAll('[data-action]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -140,6 +150,66 @@
         else if (action === 'edit') { console.log('editor opens in Task 8', id); }
         else if (action === 'embed') { console.log('embed modal opens in Task 11', id); }
       });
+    });
+  }
+
+  function openUploadModal() {
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML =
+      '<div class="modal card">' +
+        '<h3>Upload de vídeo</h3>' +
+        '<div class="dropzone" id="dropzone">Arraste um arquivo MP4 aqui ou clique pra escolher</div>' +
+        '<input type="file" id="fileInput" accept="video/mp4" hidden>' +
+        '<div class="field"><label>Ou cole uma URL de vídeo</label><input type="text" id="urlInput" placeholder="https://.../video.mp4"></div>' +
+        '<div class="field"><label>Nome do vídeo</label><input type="text" id="nameInput" placeholder="Minha VSL"></div>' +
+        '<div class="modal-actions">' +
+          '<button class="btn" id="cancelUpload">Cancelar</button>' +
+          '<button class="btn btn-primary" id="saveUpload">Salvar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(backdrop);
+
+    var chosenUrl = '';
+    var dropzone = backdrop.querySelector('#dropzone');
+    var fileInput = backdrop.querySelector('#fileInput');
+    var urlInput = backdrop.querySelector('#urlInput');
+    var nameInput = backdrop.querySelector('#nameInput');
+
+    dropzone.addEventListener('click', function () { fileInput.click(); });
+    dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('dragover'); });
+    dropzone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      var file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      chosenUrl = URL.createObjectURL(file);
+      dropzone.textContent = 'Selecionado: ' + file.name;
+      if (!nameInput.value) nameInput.value = file.name.replace(/\.[^.]+$/, '');
+    }
+
+    urlInput.addEventListener('input', function () {
+      if (urlInput.value) chosenUrl = urlInput.value;
+    });
+
+    backdrop.querySelector('#cancelUpload').addEventListener('click', function () {
+      document.body.removeChild(backdrop);
+    });
+
+    backdrop.querySelector('#saveUpload').addEventListener('click', function () {
+      var url = urlInput.value || chosenUrl;
+      var name = nameInput.value || 'Vídeo sem nome';
+      if (!url) { alert('Escolha um arquivo ou cole uma URL.'); return; }
+      createVideo(name, url);
+      document.body.removeChild(backdrop);
+      renderVideoList();
     });
   }
 
