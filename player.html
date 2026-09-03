@@ -27,6 +27,18 @@
     background: rgba(0,0,0,0.25); border: none; cursor: pointer;
   }
   .big-play svg { width: 72px; height: 72px; }
+  .controls-bar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; background: linear-gradient(transparent, rgba(0,0,0,0.75));
+  }
+  .time { color: var(--cream, #F8F6F0); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .progress-track {
+    flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 999px; cursor: pointer; position: relative;
+  }
+  .progress-fill {
+    height: 100%; width: 0%; border-radius: 999px; background: #D4AF37;
+  }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -37,6 +49,12 @@
     <button class="big-play" id="bigPlay" aria-label="Play">
       <svg viewBox="0 0 24 24" fill="#D4AF37"><path d="M8 5v14l11-7z"/></svg>
     </button>
+    <div class="controls-bar" id="controlsBar">
+      <span class="time" id="timeLabel">0:00 / 0:00</span>
+      <div class="progress-track" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
   </div>
 
 <script src="storage.js"></script>
@@ -117,6 +135,35 @@
     } else if (e.code === 'ArrowLeft') {
       video.currentTime = Math.max(0, video.currentTime - 10);
     }
+  });
+
+  var progressTrack = document.getElementById('progressTrack');
+  var progressFill = document.getElementById('progressFill');
+  var timeLabel = document.getElementById('timeLabel');
+  progressFill.style.background = cfg.barColor;
+  document.getElementById('progressTrack').style.height = cfg.barHeight + 'px';
+
+  var SMART_FACTOR = 1.15; // makes the bar read as "shorter" than actual duration
+
+  function formatTime(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    var m = Math.floor(s / 60);
+    var sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  video.addEventListener('timeupdate', function () {
+    if (!video.duration) return;
+    var pct = Math.min(100, (video.currentTime / video.duration) * 100 * SMART_FACTOR);
+    progressFill.style.width = pct + '%';
+    timeLabel.textContent = formatTime(video.currentTime) + ' / ' + formatTime(video.duration);
+  });
+
+  progressTrack.addEventListener('click', function (e) {
+    if (!video.duration) return;
+    var rect = progressTrack.getBoundingClientRect();
+    var ratio = (e.clientX - rect.left) / rect.width;
+    video.currentTime = Math.max(0, Math.min(1, ratio)) * video.duration / SMART_FACTOR;
   });
 
   window.__player = { video: video, cfg: cfg };
