@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>V Infinitum Player</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<style>
+  html, body { height: 100%; background: #000; overflow: hidden; }
+  .player-wrap {
+    position: relative;
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: #000;
+  }
+  video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .mute-overlay {
+    position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+    background: rgba(0,0,0,0.6); color: var(--cream, #F8F6F0);
+    padding: 8px 14px; border-radius: 20px; font-size: 13px;
+    display: flex; align-items: center; gap: 8px; pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .big-play {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.25); border: none; cursor: pointer;
+  }
+  .big-play svg { width: 72px; height: 72px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="player-wrap" id="wrap">
+    <video id="video" playsinline muted></video>
+    <div class="mute-overlay" id="muteOverlay">🔇 <span id="muteText"></span></div>
+    <button class="big-play" id="bigPlay" aria-label="Play">
+      <svg viewBox="0 0 24 24" fill="#D4AF37"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+
+<script src="storage.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var cfg = {
+    src: params.get('v') || '',
+    poster: params.get('poster') || '',
+    autoplay: params.get('autoplay') !== '0',
+    muteText: params.get('mute_text') || 'Toque para ativar o som',
+    barColor: params.get('bar_color') || '#D4AF37',
+    barHeight: parseInt(params.get('bar_height') || '6', 10),
+    ctaEnabled: params.get('cta') === '1',
+    ctaText: params.get('cta_text') || '',
+    ctaUrl: params.get('cta_url') || '',
+    ctaTime: parseFloat(params.get('cta_time') || '30'),
+    ctaColor: params.get('cta_color') || '#D4AF37',
+    ctaSub: params.get('cta_sub') || '',
+    cwEnabled: params.get('cw') !== '0',
+    cwMsg: params.get('cw_msg') || 'Continue de onde parou',
+    pixelId: params.get('pixel') || '',
+    pixelPcts: (params.get('pixel_pcts') || '25,50,75,100').split(',').map(Number).filter(function (n) { return !isNaN(n); }),
+    speed: params.get('speed') || 'auto'
+  };
+
+  var video = document.getElementById('video');
+  var muteOverlay = document.getElementById('muteOverlay');
+  var muteTextEl = document.getElementById('muteText');
+  var bigPlay = document.getElementById('bigPlay');
+
+  muteTextEl.textContent = cfg.muteText;
+  if (cfg.poster) video.setAttribute('poster', cfg.poster);
+  if (cfg.src) video.setAttribute('src', cfg.src);
+
+  function play() { video.play().catch(function () {}); }
+
+  if (cfg.autoplay) {
+    video.muted = true;
+    play();
+  } else {
+    muteOverlay.hidden = true;
+  }
+
+  video.addEventListener('play', function () {
+    bigPlay.hidden = true;
+  });
+  video.addEventListener('pause', function () {
+    bigPlay.hidden = false;
+  });
+
+  bigPlay.addEventListener('click', function () {
+    if (video.muted) video.muted = false;
+    play();
+  });
+
+  video.addEventListener('click', function () {
+    if (video.muted) {
+      video.muted = false;
+      muteOverlay.hidden = true;
+    } else if (video.paused) {
+      play();
+    } else {
+      video.pause();
+    }
+  });
+
+  if (cfg.autoplay) {
+    setTimeout(function () { muteOverlay.style.opacity = '0'; setTimeout(function () { muteOverlay.hidden = true; }, 300); }, 4000);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (video.paused) play(); else video.pause();
+    } else if (e.code === 'ArrowRight') {
+      video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+    } else if (e.code === 'ArrowLeft') {
+      video.currentTime = Math.max(0, video.currentTime - 10);
+    }
+  });
+
+  window.__player = { video: video, cfg: cfg };
+})();
+</script>
+</body>
+</html>

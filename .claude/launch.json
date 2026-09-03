@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "v-infinitum-http",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "-p", "3000"],
+      "port": 3000
+    }
+  ]
+}
