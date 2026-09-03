@@ -31,6 +31,17 @@
   }
   nav.sidebar a.active, nav.sidebar a:hover { background: var(--surface-2); color: var(--gold); }
   main { flex: 1; padding: 24px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button { background: transparent; border: 1px solid var(--border); color: var(--silver); padding: 6px 14px; border-radius: 999px; cursor: pointer; font-family: var(--font); }
+  .tabs button.active { background: var(--gold); color: #1a1400; border-color: var(--gold); }
+  table.video-table { width: 100%; border-collapse: collapse; }
+  table.video-table th, table.video-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  table.video-table th { color: var(--silver); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .thumb { width: 64px; height: 36px; background: var(--surface-2); border-radius: 6px; object-fit: cover; }
+  .row-actions button { background: transparent; border: none; color: var(--silver); cursor: pointer; font-size: 16px; margin-right: 8px; }
+  .row-actions button:hover { color: var(--gold); }
+  .empty-state { color: var(--silver); text-align: center; padding: 60px 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -71,8 +82,65 @@
     });
   });
 
+  var currentTab = 'active'; // 'active' | 'top' | 'trash'
+
   function renderVideoList() {
-    mainView.innerHTML = '<p style="color:var(--silver)">Carregando biblioteca...</p>';
+    var all = getVideos();
+    var list;
+    if (currentTab === 'trash') list = all.filter(function (v) { return v.status === 'trash'; });
+    else if (currentTab === 'top') list = all.filter(function (v) { return v.status === 'active'; }).sort(function (a, b) { return b.plays - a.plays; });
+    else list = all.filter(function (v) { return v.status === 'active'; });
+
+    var rowsHtml = list.map(function (v) {
+      var thumb = v.thumbnail ? '<img class="thumb" src="' + v.thumbnail + '">' : '<div class="thumb"></div>';
+      var date = new Date(v.createdAt).toLocaleDateString('pt-BR');
+      var actions = currentTab === 'trash'
+        ? '<button data-action="restore" data-id="' + v.id + '" title="Restaurar">↺</button><button data-action="delete" data-id="' + v.id + '" title="Excluir definitivamente">🗑</button>'
+        : '<button data-action="edit" data-id="' + v.id + '" title="Editar">✎</button><button data-action="embed" data-id="' + v.id + '" title="Embed">{ }</button><button data-action="trash" data-id="' + v.id + '" title="Excluir">🗑</button>';
+      return '<tr>' +
+        '<td>' + thumb + '</td>' +
+        '<td>' + v.name + '</td>' +
+        '<td>' + date + '</td>' +
+        '<td>' + v.plays + '</td>' +
+        '<td class="row-actions">' + actions + '</td>' +
+        '</tr>';
+    }).join('');
+
+    mainView.innerHTML =
+      '<div class="toolbar">' +
+        '<div class="tabs" id="tabs">' +
+          '<button data-tab="active" class="' + (currentTab === 'active' ? 'active' : '') + '">Biblioteca</button>' +
+          '<button data-tab="top" class="' + (currentTab === 'top' ? 'active' : '') + '">Top vídeos</button>' +
+          '<button data-tab="trash" class="' + (currentTab === 'trash' ? 'active' : '') + '">Lixeira</button>' +
+        '</div>' +
+        '<button class="btn btn-primary" id="uploadBtn">Upload</button>' +
+      '</div>' +
+      (list.length === 0
+        ? '<div class="empty-state">Nenhum vídeo por aqui ainda.</div>'
+        : '<table class="video-table"><thead><tr><th>Thumb</th><th>Nome</th><th>Data</th><th>Plays</th><th>Ações</th></tr></thead><tbody>' + rowsHtml + '</tbody></table>');
+
+    document.getElementById('tabs').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tab]');
+      if (!btn) return;
+      currentTab = btn.dataset.tab;
+      renderVideoList();
+    });
+
+    document.getElementById('uploadBtn').addEventListener('click', function () {
+      console.log('upload modal opens in Task 7');
+    });
+
+    mainView.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.dataset.id;
+        var action = btn.dataset.action;
+        if (action === 'trash') { trashVideo(id); renderVideoList(); }
+        else if (action === 'restore') { restoreVideo(id); renderVideoList(); }
+        else if (action === 'delete') { deleteVideoPermanently(id); renderVideoList(); }
+        else if (action === 'edit') { console.log('editor opens in Task 8', id); }
+        else if (action === 'embed') { console.log('embed modal opens in Task 11', id); }
+      });
+    });
   }
 
   renderVideoList();
