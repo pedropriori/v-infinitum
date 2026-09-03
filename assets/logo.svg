@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="ouroGold" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#B8973E"/>
+      <stop offset="55%" stop-color="#D4AF37"/>
+      <stop offset="82%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9B1C2C"/>
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="url(#ouroGold)" stroke-width="4" stroke-linecap="round" stroke-dasharray="132 6"/>
+  <circle cx="32" cy="32" r="3.2" fill="#D4AF37"/>
+  <circle cx="48.5" cy="19.5" r="2.6" fill="#5C2A7E"/>
+</svg>
