@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V Infinitum — Dashboard</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--surface);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 28px; height: 28px; }
+  .brand span { font-size: 15px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--gold); color: #1a1400; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .layout { display: flex; flex: 1; }
+  nav.sidebar {
+    width: 220px; border-right: 1px solid var(--border); background: var(--surface);
+    padding: 18px 10px;
+  }
+  nav.sidebar a {
+    display: block; padding: 10px 14px; margin-bottom: 4px; border-radius: 8px;
+    color: var(--silver); text-decoration: none; font-size: 14px;
+  }
+  nav.sidebar a.active, nav.sidebar a:hover { background: var(--surface-2); color: var(--gold); }
+  main { flex: 1; padding: 24px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="assets/logo.svg" alt="">
+      <span class="wordmark">Infinitum</span>
+    </div>
+    <div class="avatar">IN</div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar">
+      <a href="#videos" class="active" data-nav="videos">Meus Vídeos</a>
+      <a href="#security" data-nav="security">Segurança</a>
+      <a href="#settings" data-nav="settings">Configurações</a>
+    </nav>
+    <main id="mainView"></main>
+  </div>
+
+<script src="storage.js"></script>
+<script>
+  var mainView = document.getElementById('mainView');
+  var navLinks = document.querySelectorAll('nav.sidebar a');
+
+  function setActiveNav(name) {
+    navLinks.forEach(function (a) {
+      a.classList.toggle('active', a.dataset.nav === name);
+    });
+  }
+
+  navLinks.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      setActiveNav(a.dataset.nav);
+      if (a.dataset.nav === 'videos') renderVideoList();
+      else mainView.innerHTML = '<p style="color:var(--silver)">Em breve.</p>';
+    });
+  });
+
+  function renderVideoList() {
+    mainView.innerHTML = '<p style="color:var(--silver)">Carregando biblioteca...</p>';
+  }
+
+  renderVideoList();
+</script>
+</body>
+</html>
