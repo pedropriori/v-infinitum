@@ -300,8 +300,96 @@
     refreshPreview(video);
   }
 
+  function toggleRow(label, checked, onChange) {
+    var id = 'sw_' + Math.random().toString(36).slice(2, 8);
+    var wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.innerHTML =
+      '<label for="' + id + '">' + label + '</label>' +
+      '<label class="switch"><input type="checkbox" id="' + id + '" ' + (checked ? 'checked' : '') + '><span class="slider"></span></label>';
+    wrap.querySelector('input').addEventListener('change', function (e) { onChange(e.target.checked); });
+    return wrap;
+  }
+
+  function textRow(label, value, onChange, type) {
+    var id = 'tx_' + Math.random().toString(36).slice(2, 8);
+    var wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.innerHTML = '<label for="' + id + '">' + label + '</label><input type="' + (type || 'text') + '" id="' + id + '" value="' + (value == null ? '' : value) + '">';
+    wrap.querySelector('input').addEventListener('input', function (e) {
+      onChange(type === 'number' ? parseFloat(e.target.value || '0') : e.target.value);
+    });
+    return wrap;
+  }
+
+  function selectRow(label, value, options, onChange) {
+    var id = 'sel_' + Math.random().toString(36).slice(2, 8);
+    var wrap = document.createElement('div');
+    wrap.className = 'row';
+    var optionsHtml = options.map(function (o) { return '<option value="' + o.value + '"' + (o.value === value ? ' selected' : '') + '>' + o.label + '</option>'; }).join('');
+    wrap.innerHTML = '<label for="' + id + '">' + label + '</label><select id="' + id + '">' + optionsHtml + '</select>';
+    wrap.querySelector('select').addEventListener('change', function (e) { onChange(e.target.value); });
+    return wrap;
+  }
+
+  function section(title, rows) {
+    var s = document.createElement('div');
+    s.className = 'section';
+    var h = document.createElement('h4');
+    h.textContent = title;
+    s.appendChild(h);
+    rows.forEach(function (r) { s.appendChild(r); });
+    return s;
+  }
+
+  function saveAndRefresh(video) {
+    upsertVideo(video);
+    refreshPreview(video);
+  }
+
   function renderConfigPanel(video) {
-    document.getElementById('editorPanel').innerHTML = '<p style="color:var(--silver)">Config panel — Task 9/10.</p>';
+    var panel = document.getElementById('editorPanel');
+    panel.innerHTML = '';
+    var c = video.config;
+
+    var controlLabels = {
+      bigPlay: 'Play grande', smallPlay: 'Play pequeno', disablePause: 'Desativar pause',
+      progressBar: 'Barra de progresso', time: 'Tempo', rewind10: 'Voltar 10s', forward10: 'Avançar 10s',
+      volume: 'Volume', fullscreen: 'Fullscreen', speed: 'Velocidade'
+    };
+    var controlRows = Object.keys(controlLabels).map(function (key) {
+      return toggleRow(controlLabels[key], c.style.controls[key], function (val) {
+        c.style.controls[key] = val;
+        saveAndRefresh(video);
+      });
+    });
+
+    panel.appendChild(section('Estilo', [
+      textRow('Cor principal', c.style.primaryColor, function (v) { c.style.primaryColor = v; saveAndRefresh(video); }, 'color'),
+      textRow('Background', c.style.backgroundColor, function (v) { c.style.backgroundColor = v; saveAndRefresh(video); }, 'color'),
+      textRow('Cantos arredondados (px)', c.style.cornerRadius, function (v) { c.style.cornerRadius = v; saveAndRefresh(video); }, 'number')
+    ].concat(controlRows)));
+
+    panel.appendChild(section('Progresso Inteligente', [
+      toggleRow('Ativado', c.smartProgress.enabled, function (v) { c.smartProgress.enabled = v; saveAndRefresh(video); }),
+      textRow('Cor da barra', c.smartProgress.color, function (v) { c.smartProgress.color = v; saveAndRefresh(video); }, 'color'),
+      textRow('Altura (px)', c.smartProgress.height, function (v) { c.smartProgress.height = v; saveAndRefresh(video); }, 'number')
+    ]));
+
+    panel.appendChild(section('Smart Autoplay', [
+      toggleRow('Ativado', c.smartAutoplay.enabled, function (v) { c.smartAutoplay.enabled = v; saveAndRefresh(video); }),
+      textRow('Texto overlay', c.smartAutoplay.overlayText, function (v) { c.smartAutoplay.overlayText = v; saveAndRefresh(video); }),
+      textRow('Trecho inicial (s)', c.smartAutoplay.startOffset, function (v) { c.smartAutoplay.startOffset = v; saveAndRefresh(video); }, 'number')
+    ]));
+
+    renderConfigPanelPart2(panel, video);
+  }
+
+  function renderConfigPanelPart2(panel, video) {
+    var note = document.createElement('p');
+    note.style.color = 'var(--silver)';
+    note.textContent = 'CTA / Continuar / Pixels / Reprodução — Task 10.';
+    panel.appendChild(note);
   }
 
   renderVideoList();
