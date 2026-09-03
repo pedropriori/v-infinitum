@@ -42,8 +42,8 @@
   .row-actions button { background: transparent; border: none; color: var(--silver); cursor: pointer; font-size: 16px; margin-right: 8px; }
   .row-actions button:hover { color: var(--gold); }
   .empty-state { color: var(--silver); text-align: center; padding: 60px 0; }
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
-  .modal { width: 480px; max-width: 90vw; padding: 24px; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); overflow-y: auto; padding: 40px 16px; z-index: 50; }
+  .modal { width: 480px; max-width: 90vw; padding: 24px; margin: 0 auto; }
   .modal h3 { margin-top: 0; }
   .dropzone {
     border: 2px dashed var(--border); border-radius: 10px; padding: 30px;
@@ -76,6 +76,13 @@
   .slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: var(--silver); border-radius: 50%; transition: .2s; }
   .switch input:checked + .slider { background: var(--gold); }
   .switch input:checked + .slider::before { transform: translateX(16px); background: #1a1400; }
+  .embed-modal { width: 560px; }
+  .embed-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .embed-tabs button { background: transparent; border: 1px solid var(--border); color: var(--silver); padding: 6px 14px; border-radius: 999px; cursor: pointer; font-family: var(--font); }
+  .embed-tabs button.active { background: var(--gold); color: #1a1400; border-color: var(--gold); }
+  .embed-code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: var(--silver); white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
+  .embed-preview { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; margin: 12px 0; }
+  .embed-preview iframe { width: 100%; height: 100%; border: 0; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -170,7 +177,7 @@
         else if (action === 'restore') { restoreVideo(id); renderVideoList(); }
         else if (action === 'delete') { deleteVideoPermanently(id); renderVideoList(); }
         else if (action === 'edit') { renderEditor(id); }
-        else if (action === 'embed') { console.log('embed modal opens in Task 11', id); }
+        else if (action === 'embed') { openEmbedModal(id); }
       });
     });
   }
@@ -286,7 +293,7 @@
       '</div>';
 
     document.getElementById('backToList').addEventListener('click', renderVideoList);
-    document.getElementById('embedTopBtn').addEventListener('click', function () { console.log('embed modal opens in Task 11', id); });
+    document.getElementById('embedTopBtn').addEventListener('click', function () { openEmbedModal(id); });
 
     mainView.querySelectorAll('.device-toggle button').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -423,6 +430,68 @@
       toggleRow('Fullscreen desktop', c.playback.fullscreen.desktop, function (v) { c.playback.fullscreen.desktop = v; saveAndRefresh(video); }),
       toggleRow('Fullscreen mobile', c.playback.fullscreen.mobile, function (v) { c.playback.fullscreen.mobile = v; saveAndRefresh(video); })
     ]));
+  }
+
+  function embedSnippets(video) {
+    var url = location.origin + location.pathname.replace(/index\.html$/, '') + buildPlayerUrl(video);
+    var responsive = document.getElementById('embedResponsive') ? document.getElementById('embedResponsive').checked : true;
+    var wrapOpen = responsive ? '<div style="position:relative;padding-top:56.25%;">' : '';
+    var wrapClose = responsive ? '</div>' : '';
+    var iframeStyle = responsive ? 'position:absolute;inset:0;width:100%;height:100%;border:0;' : 'width:100%;aspect-ratio:16/9;border:0;';
+    return {
+      recommended: wrapOpen + '<iframe src="' + url + '" style="' + iframeStyle + '" allow="autoplay; fullscreen" allowfullscreen></iframe>' + wrapClose,
+      javascript: '<div id="vinfinitum-' + video.id + '"></div>\n<script>\n(function(){var f=document.createElement("iframe");f.src="' + url + '";f.style.cssText="' + iframeStyle + '";f.allow="autoplay; fullscreen";f.allowFullscreen=true;document.getElementById("vinfinitum-' + video.id + '").appendChild(f);})();\n<\/script>',
+      iframe: '<iframe src="' + url + '" width="100%" height="360" allow="autoplay; fullscreen" allowfullscreen style="border:0;"></iframe>',
+      direct: url
+    };
+  }
+
+  function openEmbedModal(id) {
+    var video = getVideo(id);
+    if (!video) return;
+    var currentEmbedTab = 'recommended';
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+
+    function render() {
+      var snippets = embedSnippets(video);
+      var codeMap = { recommended: snippets.recommended, javascript: snippets.javascript, iframe: snippets.iframe };
+      backdrop.innerHTML =
+        '<div class="modal card embed-modal">' +
+          '<h3>Embed — ' + video.name + '</h3>' +
+          '<div class="row"><label>Vídeo Responsivo</label><label class="switch"><input type="checkbox" id="embedResponsive" checked><span class="slider"></span></label></div>' +
+          '<div class="embed-tabs">' +
+            '<button data-tab="recommended" class="' + (currentEmbedTab === 'recommended' ? 'active' : '') + '">Recomendado</button>' +
+            '<button data-tab="javascript" class="' + (currentEmbedTab === 'javascript' ? 'active' : '') + '">JavaScript</button>' +
+            '<button data-tab="iframe" class="' + (currentEmbedTab === 'iframe' ? 'active' : '') + '">iFrame</button>' +
+          '</div>' +
+          '<div class="embed-code">' + codeMap[currentEmbedTab].replace(/</g, '&lt;') + '</div>' +
+          '<div class="field"><label>Link direto</label><input type="text" id="directLink" readonly value="' + snippets.direct + '"></div>' +
+          '<div class="embed-preview"><iframe src="' + buildPlayerUrl(video) + '"></iframe></div>' +
+          '<div class="modal-actions">' +
+            '<button class="btn" id="closeEmbed">Fechar</button>' +
+            '<button class="btn btn-primary" id="copyEmbed">Copiar código</button>' +
+          '</div>' +
+        '</div>';
+
+      backdrop.querySelector('#embedResponsive').addEventListener('change', render);
+      backdrop.querySelectorAll('.embed-tabs button').forEach(function (btn) {
+        btn.addEventListener('click', function () { currentEmbedTab = btn.dataset.tab; render(); });
+      });
+      backdrop.querySelector('#closeEmbed').addEventListener('click', function () { document.body.removeChild(backdrop); });
+      backdrop.querySelector('#copyEmbed').addEventListener('click', function () {
+        navigator.clipboard.writeText(codeMap[currentEmbedTab]).then(function () {
+          var btn = backdrop.querySelector('#copyEmbed');
+          var original = btn.textContent;
+          btn.textContent = 'Copiado!';
+          setTimeout(function () { btn.textContent = original; }, 1500);
+        });
+      });
+    }
+
+    render();
+    document.body.appendChild(backdrop);
   }
 
   renderVideoList();
